@@ -10,6 +10,7 @@ export default (editor, options = {}) => {
         droppable: true,
         attributes: { class: "background-video-wrapper" },
         provider: "html5",
+        muted: true,
         components: [],
         styles: `
           .background-video-wrapper {
@@ -65,6 +66,14 @@ export default (editor, options = {}) => {
             name: "overlay-color",
             changeProp: 1,
           },
+          {
+            type: "checkbox",
+            name: "muted",
+            label: "Mute Video",
+            valueTrue: true,
+            valueFalse: false,
+            changeProp: 1,
+          },
         ],
       },
 
@@ -80,6 +89,7 @@ export default (editor, options = {}) => {
         this.listenTo(this, "change:video-src", this.updateHtml5Src);
         this.listenTo(this, "change:embed-src", this.updateEmbedSrc);
         this.listenTo(this, "change:overlay-color", this.updateOverlayColor);
+        this.listenTo(this, "change:muted", this.updateMuted);
 
         this.updateProvider();
       },
@@ -108,7 +118,7 @@ export default (editor, options = {}) => {
             attributes: {
               autoplay: true,
               loop: true,
-              muted: true,
+              muted: this.get("muted"),
               playsinline: true,
               controls: false,
               src: this.get("video-src") || "",
@@ -118,16 +128,16 @@ export default (editor, options = {}) => {
           };
         } else {
           const id = this.get("embed-src") || "";
+          const isMuted = this.get("muted") ? 1 : 0;
           let embedUrl = "";
 
           if (provider === "youtube") {
-            embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}`;
+            embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&mute=${isMuted}&loop=1&playlist=${id}`;
           } else if (provider === "youtube-nocookie") {
-            embedUrl = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}`;
+            embedUrl = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${isMuted}&loop=1&playlist=${id}`;
           } else if (provider === "vimeo") {
-            embedUrl = `https://player.vimeo.com/video/${id}?autoplay=1&muted=1&loop=1&background=1`;
+            embedUrl = `https://player.vimeo.com/video/${id}?autoplay=1&muted=${isMuted}&loop=1&background=1`;
           }
-
           videoComp = {
             tagName: "iframe",
             attributes: {
@@ -206,6 +216,20 @@ export default (editor, options = {}) => {
           },
           draggable: false,
         };
+      },
+
+      updateMuted() {
+        if (this.get("provider") === "html5") {
+          const videoWrapper = this.get("components").find(
+            (comp) => comp.get("tagName") === "video"
+          );
+
+          if (videoWrapper) {
+            videoWrapper.set("muted", this.get("muted"));
+          }
+        } else {
+          this.updateProvider();
+        }
       },
     },
   });
