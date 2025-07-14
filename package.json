@@ -1,6 +1,6 @@
 {
   "name": "grapesjs-dinvitations",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Grapesjs Dinvitations",
   "main": "dist/index.js",
   "repository": {
@@ -8,8 +8,9 @@
     "url": "https://github.com/restuedos/grapesjs-dinvitations.git"
   },
   "scripts": {
-    "start": "grapesjs-cli serve",
-    "build": "grapesjs-cli build",
+    "start": "cross-env NODE_ENV=development grapesjs-cli serve",
+    "build": "cross-env NODE_ENV=production grapesjs-cli build",
+    "build:css": "sass src/styles.scss dist/grapesjs-dinvitations.min.css --style=compressed",
     "bump": "npm version patch -m 'Bump v%s'"
   },
   "keywords": [
@@ -17,15 +18,13 @@
     "plugin"
   ],
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "css-loader": "^7.1.2",
-    "file-loader": "^6.2.0",
     "grapesjs-cli": "^4.1.3",
-    "html-loader": "^5.1.0",
-    "html-webpack-plugin": "^5.6.3",
     "mini-css-extract-plugin": "^2.9.2",
-    "style-loader": "^4.0.0",
-    "webpack-cli": "^6.0.1",
-    "workbox-webpack-plugin": "^7.3.0"
+    "sass": "^1.89.2",
+    "sass-loader": "^16.0.5",
+    "style-loader": "^4.0.0"
   },
   "license": "MIT"
 }
