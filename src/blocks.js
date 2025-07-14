@@ -26,12 +26,10 @@ export default (editor) => {
     `,
     content: () => {
       const id = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      return `
-        <div id="rsvp-container-${id}" class="rsvp-group" data-rsvp-block-id="${id}">
-          <button id="rsvp-yes-${id}" class="btn-rsvp-yes">Yes</button>
-          <button id="rsvp-no-${id}" class="btn-rsvp-no">No</button>
-        </div>
-      `;
+      return {
+        type: "rsvp-buttons",
+        attributes: { "data-rsvp-block-id": id }
+      };
     },
     select: true,
     activate: true,

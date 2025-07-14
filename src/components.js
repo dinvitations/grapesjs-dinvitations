@@ -70,7 +70,9 @@ export default (editor, options = {}) => {
 
       init() {
         if (!this.get("overlayId")) {
-          const id = `video-overlay-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          const id = `video-overlay-${Date.now()}-${Math.floor(
+            Math.random() * 1000
+          )}`;
           this.set("overlayId", id);
         }
 
@@ -91,10 +93,12 @@ export default (editor, options = {}) => {
           (comp) => comp.getAttributes().id === overlayId
         );
 
-        comps.filter((comp) => {
-          const tag = comp.get("tagName");
-          return tag === "video" || tag === "iframe";
-        }).forEach((c) => comps.remove(c));
+        comps
+          .filter((comp) => {
+            const tag = comp.get("tagName");
+            return tag === "video" || tag === "iframe";
+          })
+          .forEach((c) => comps.remove(c));
 
         let videoComp;
         if (provider === "html5") {
@@ -137,7 +141,9 @@ export default (editor, options = {}) => {
           };
         }
 
-        const overlayIndex = overlayComp ? comps.indexOf(overlayComp) : comps.length;
+        const overlayIndex = overlayComp
+          ? comps.indexOf(overlayComp)
+          : comps.length;
         comps.add(videoComp, { at: overlayIndex });
 
         this.updateOverlayColor();
@@ -169,14 +175,11 @@ export default (editor, options = {}) => {
           (comp) => comp.getAttributes().id === overlayId
         );
 
-        // Create overlay if missing
         if (!overlay) {
           const newOverlay = this.addOverlayComponent(color);
           comps.add(newOverlay);
 
-          overlay = comps.find(
-            (comp) => comp.getAttributes().id === overlayId
-          );
+          overlay = comps.find((comp) => comp.getAttributes().id === overlayId);
         }
 
         const style = overlay.getStyle() || {};
@@ -203,6 +206,160 @@ export default (editor, options = {}) => {
           },
           draggable: false,
         };
+      },
+    },
+  });
+
+  domc.addType("rsvp-buttons", {
+    model: {
+      defaults: {
+        tagName: "div",
+        draggable: true,
+        droppable: true,
+        traits: [
+          {
+            name: "rsvp",
+            type: "select",
+            label: "RSVP State",
+            options: [
+              { id: "null", name: "No Response" },
+              { id: "true", name: "Attending" },
+              { id: "false", name: "Not Attending" },
+            ],
+            changeProp: 1,
+          },
+          {
+            name: "rsvp-endpoint",
+            label: "Submit Endpoint",
+            value: "/rsvp",
+            placeholder: "/rsvp",
+            changeProp: 1,
+          },
+        ],
+        rsvp: "null",
+        attributes: {
+          "data-rsvp": "null",
+          "data-rsvp-endpoint": "/rsvp",
+        },
+        components: [
+          {
+            tagName: "div",
+            classes: ["rsvp-thank-you-wrapper"],
+            attributes: { "data-rsvp-visible": "true,false" },
+            components: [
+              {
+                type: "text",
+                content: "Thank you for confirming your attendance.",
+                classes: ["rsvp-thank-you"],
+                editable: true,
+              },
+              {
+                type: "button",
+                text: "Change RSVP",
+                classes: ["btn-rsvp-change"],
+              },
+            ],
+          },
+          {
+            tagName: "div",
+            classes: ["rsvp-buttons-wrapper"],
+            attributes: { "data-rsvp-visible": "null" },
+            components: [
+              {
+                type: "button",
+                text: "Yes",
+                classes: ["btn-rsvp-yes"],
+              },
+              {
+                type: "button",
+                text: "No",
+                classes: ["btn-rsvp-no"],
+              },
+            ],
+          },
+        ],
+        script: function () {
+          const el = this;
+
+          function updateVisibility(rsvp) {
+            [...el.children].forEach((child) => {
+              const visibleFor = child.getAttribute("data-rsvp-visible");
+              if (!visibleFor) return;
+
+              const shouldShow = visibleFor.split(",").includes(rsvp);
+              child.style.display = shouldShow ? "" : "none";
+            });
+          }
+
+          function updateRSVP(value) {
+            const valueStr = String(value);
+            el.setAttribute("data-rsvp", valueStr);
+            updateVisibility(valueStr);
+          }
+
+          const currentRSVP = String(el.getAttribute("data-rsvp"));
+          updateVisibility(currentRSVP);
+
+          function submitRSVP(value) {
+            const guestId =
+              el.getAttribute("data-guest-id") ||
+              document
+                .querySelector("[data-guest-id]")
+                ?.getAttribute("data-guest-id");
+
+            const endpoint = el.getAttribute("data-rsvp-endpoint") || "/rsvp";
+            const blockId = el.getAttribute("data-rsvp-block-id");
+
+            if (!guestId) {
+              return;
+            }
+
+            fetch(endpoint, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": document.querySelector(
+                  'meta[name="csrf-token"]'
+                )?.content,
+              },
+              body: JSON.stringify({
+                rsvp: value,
+                guest_id: guestId,
+                block_id: blockId,
+              }),
+            })
+              .then((res) => {
+                if (!res.ok) throw new Error("Submission failed");
+                return res.json();
+              })
+              .then(() => updateRSVP(value))
+              .catch((err) => {
+                console.error("RSVP error:", err);
+              });
+          }
+
+          const yesBtn = el.querySelector(".btn-rsvp-yes");
+          const noBtn = el.querySelector(".btn-rsvp-no");
+          const changeBtn = el.querySelector(".btn-rsvp-change");
+
+          if (yesBtn) yesBtn.onclick = () => submitRSVP(true);
+          if (noBtn) noBtn.onclick = () => submitRSVP(false);
+          if (changeBtn) changeBtn.onclick = () => submitRSVP(null);
+        },
+      },
+
+      init() {
+        this.listenTo(this, "change:rsvp", () => {
+          const rsvp = String(this.get("rsvp"));
+          this.addAttributes({ "data-rsvp": rsvp });
+          this.trigger("change:script");
+        });
+
+        this.listenTo(this, "change:rsvp-endpoint", () => {
+          const endpoint = this.get("rsvp-endpoint");
+          this.addAttributes({ "data-rsvp-endpoint": endpoint });
+          this.trigger("change:script");
+        });
       },
     },
   });
