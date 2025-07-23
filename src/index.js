@@ -35,7 +35,13 @@ export default (editor, opts = {}) => {
       cmdm.add("canvas-clear", () => {
         if (confirm("Are you sure to clean the canvas?")) {
           editor.runCommand("core:canvas-clear");
-          setTimeout(() => localStorage.clear(), 0);
+          setTimeout(() => {
+            Object.keys(localStorage).forEach((key) => {
+              if (key.startsWith("gjs-") || key.includes("grapes")) {
+                localStorage.removeItem(key);
+              }
+            });
+          }, 0);
         }
       });
 
@@ -65,7 +71,7 @@ export default (editor, opts = {}) => {
       });
 
       // Convert native title to custom tooltips
-      document.querySelectorAll("*[title]").forEach((el) => {
+      editor.getEl().querySelectorAll("*[title]").forEach((el) => {
         const title = el.getAttribute("title")?.trim();
         if (title) {
           el.setAttribute("data-tooltip", title);
@@ -84,8 +90,9 @@ export default (editor, opts = {}) => {
       pn.getButton("views", "open-sm")?.set("active", 1);
       pn.removeButton("views", "open-tm");
 
-      const smSectors = document.querySelector(".gjs-sm-sectors");
-      const traitContainer = document.querySelector(".gjs-traits-cs");
+      const editorEl = editor.getEl();
+      const smSectors = editorEl.querySelector(".gjs-sm-sectors");
+      const traitContainer = editorEl.querySelector(".gjs-traits-cs");
 
       if (smSectors && traitContainer) {
         // Create "Settings" sector above Style Manager
